@@ -1,0 +1,87 @@
+﻿FUNCTION_BLOCK "AnRead"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      adrHW { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Адрес входа
+      "type" { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String;   // TEMP - температура
+   END_VAR
+   VAR_INPUT RETAIN
+      onFiltr { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String;   // ON - фильтр
+      cycleFiltr { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Время цикла фильтра, мс
+   END_VAR
+   VAR_INPUT 
+      smoothTime : Real;   // Время фильтрации, мс
+   END_VAR
+   VAR_INPUT RETAIN
+      minValue { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Минимальное значение
+      maxValue { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Максимальное значение
+   END_VAR
+
+   VAR_OUTPUT 
+      outValue { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Выходное значение
+   END_VAR
+
+   VAR 
+      filtrValue { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Фильтрованное значение
+      K : Real := 1.0;   // Подгоночные коэффициенты
+      B : Real;   // Подгоночные коэффициенты
+      instFilter : "FiltrPT1";
+   END_VAR
+
+   VAR_TEMP 
+      tempVaL : Int;   // Временные переменные
+      tempValue : Real;   // Временные переменные
+      tempValOut : Real;   // Временные переменные
+   END_VAR
+
+   VAR CONSTANT 
+      MAGIC_NUMBER : Int := 27648;   // Магическое сименсовое число для аналоговых значений
+   END_VAR
+
+
+BEGIN
+	//----------------------//
+	//Обработка аналогвхода //
+	//----------------------//
+	
+	
+	
+	
+	IF #type= 'TEMP' THEN
+	    IF #onFiltr = 'ON' THEN
+	        #tempValue := INT_TO_REAL(WORD_TO_INT(PEEK_WORD(area := 16#1, dbNumber := 0, byteOffset := #adrHW)));
+	        #instFilter(set := FALSE,
+	                    in := #tempValue,
+	                    setValue := 0.0,
+	                    smoothTime := #smoothTime,
+	                    tCycle := #cycleFiltr,
+	                    out => #filtrValue);
+	        #tempValOut := #filtrValue;
+	    ELSE
+	        #tempValOut := INT_TO_REAL(WORD_TO_INT(PEEK_WORD(area := 16#81, dbNumber := 0, byteOffset := #adrHW)));
+	    END_IF;
+	ELSE
+	    IF #onFiltr = 'ON' THEN
+	        #tempVaL := WORD_TO_INT(PEEK_WORD(area := 16#81, dbNumber := 0, byteOffset := #adrHW));
+	        #tempValue := SCALE_X_REAL(MIN := #minValue, VALUE := NORM_X_REAL(MIN := 0, VALUE := #tempVaL, MAX := #MAGIC_NUMBER), MAX := #maxValue);
+	        #instFilter(set := FALSE,
+	                    in := #tempValue,
+	                    setValue := 0.0,
+	                    smoothTime := #smoothTime,
+	                    tCycle := #cycleFiltr,
+	                    out => #filtrValue);
+	        #tempValOut := #filtrValue;
+	    ELSE
+	        #tempVaL := WORD_TO_INT(PEEK_WORD(area := 16#81, dbNumber := 0, byteOffset := #adrHW));
+	        #tempValue := SCALE_X_REAL(MIN := #minValue, VALUE := NORM_X_REAL(MIN := 0, VALUE := #tempVaL, MAX := #MAGIC_NUMBER), MAX := #maxValue);
+	        #tempValOut := #tempValue;
+	    END_IF;
+	END_IF;
+	
+	#outValue := #tempValOut * #K + #B;
+	
+	
+	
+	
+END_FUNCTION_BLOCK
+
