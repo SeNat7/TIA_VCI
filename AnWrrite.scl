@@ -22,7 +22,7 @@ BEGIN
 	
 	
 	IF #mask = 0 THEN
-	    POKE(area := 16#82,
+	    POKE(area := 16#2,
 	         dbNumber := 0,
 	         byteOffset := #adrHW,
 	         value := INT_TO_WORD(REAL_TO_INT(SCALE_X_REAL(MAX := 27648, MIN := 0, VALUE := NORM_X_REAL(MAX := #maxValue, MIN := #minValue, VALUE := #inValue)))));
